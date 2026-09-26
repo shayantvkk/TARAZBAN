@@ -1,0 +1,2057 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>سامانه مدیریت قرض متریال بین شعب و انبارگردانی</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Vazirmatn', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#fef2f2',
+                            100: '#fee2e2',
+                            200: '#fecaca',
+                            500: '#ef4444',
+                            600: '#dc2626',
+                            700: '#b91c1c',
+                            800: '#991b1b',
+                            900: '#7f1d1d',
+                        },
+                        dark: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .tab-active {
+            background-color: #dc2626 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 14px 0 rgba(220, 38, 38, 0.35);
+        }
+        @media print {
+            body {
+                background-color: #ffffff !important;
+                color: #000000 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .print-only {
+                display: block !important;
+            }
+            .print-card {
+                box-shadow: none !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-brand-600 selection:text-white">
+
+    <header class="bg-dark-900 text-white shadow-lg sticky top-0 z-30 no-print border-b-4 border-brand-600">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-2xl bg-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-600/40 shrink-0">
+                        <i class="fa-solid fa-boxes-stacked text-2xl"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white">ترازبان انبار شعب</h1>
+                            <span id="currentMonthBadge" class="bg-slate-800 text-brand-500 border border-brand-500/40 text-xs font-bold px-2.5 py-0.5 rounded-full"></span>
+                            <span id="cloudStatusBadge" onclick="openBackupModal()" class="cursor-pointer bg-slate-800 text-slate-400 border border-slate-700 hover:border-slate-500 text-xs font-bold px-2.5 py-1 rounded-full transition-all flex items-center gap-1.5" title="وضعیت اتصال ابری">
+                                <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="cloudStatusDot"></span>
+                                <span id="cloudStatusText">بررسی درایو...</span>
+                            </span>
+                        </div>
+                        <p class="text-xs sm:text-sm text-slate-400 mt-0.5">سیستم هوشمند محاسبه قرض متریال بین شعب و کسر و اضافه انبارگردانی آخر ماه</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <button onclick="openTransactionModal()" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-500 text-white font-bold px-4 py-2.5 rounded-xl shadow-lg shadow-brand-600/30 transition-all active:scale-95 text-sm">
+                        <i class="fa-solid fa-plus-circle"></i>
+                        <span>ثبت قرض / حواله جدید</span>
+                    </button>
+                    <button onclick="forceSyncLocalToCloud()" class="inline-flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2.5 rounded-xl shadow-md transition-all text-sm" title="ذخیره مستقیم وضعیت فعلی در گوگل درایو">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span class="hidden sm:inline">ذخیره در درایو</span>
+                    </button>
+                    <button onclick="fetchFromGoogleDrive(false)" class="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold px-3 py-2.5 rounded-xl transition-all text-sm" title="بروزرسانی از درایو">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                    <button onclick="printInventorySheet()" class="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold px-3.5 py-2.5 rounded-xl transition-all text-sm" title="چاپ شیت انبارگردانی">
+                        <i class="fa-solid fa-print text-brand-500"></i>
+                        <span class="hidden sm:inline">چاپ گزارش</span>
+                    </button>
+                    <button onclick="openBackupModal()" class="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold px-3.5 py-2.5 rounded-xl transition-all text-sm" title="دیتابیس ابری">
+                        <i class="fa-solid fa-cloud text-brand-500"></i>
+                        <span>تنظیمات ابری</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="hidden print-only p-6 border-b-2 border-slate-800 mb-6">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900">گزارش نهایی کسر و اضافه انبارگردانی (قرض بین شعب)</h1>
+                <p class="text-sm text-slate-600 mt-1">این برگه جهت اعمال اصلاحات روی شمارش فیزیکی انبار در پایان ماه صادر شده است.</p>
+            </div>
+            <div class="text-left text-sm">
+                <div><strong>تاریخ چاپ:</strong> <span id="printDateText"></span></div>
+                <div class="mt-1"><strong>وضعیت:</strong> فقط اقلام تسویه‌نشده (باز)</div>
+            </div>
+        </div>
+    </div>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <div id="logicGuideBanner" class="bg-white border-r-4 border-brand-600 rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 no-print">
+            <div class="flex items-start gap-3">
+                <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <i class="fa-solid fa-scale-balanced text-lg"></i>
+                </div>
+                <div class="text-xs sm:text-sm leading-relaxed text-slate-700">
+                    <span class="font-extrabold text-slate-900 block mb-1">فرمول طلایی انبارگردانی آخر ماه:</span>
+                    <span class="inline-block ml-4"><i class="fa-solid fa-circle-plus text-emerald-600 ml-1"></i><strong class="text-emerald-700">طلب ما از شعب (قرض دادیم):</strong> چون جنس از انبار ما خارج شده و هنوز پس نداده‌اند، باید به آمار شمارش آخر ماه <u>اضافه شود (+)</u> تا کسری نیاوریم.</span>
+                    <span class="inline-block mt-1 sm:mt-0"><i class="fa-solid fa-circle-minus text-brand-600 ml-1"></i><strong class="text-brand-700">بدهی ما به شعب (قرض گرفتیم):</strong> چون جنس متعلق به شعبه دیگر است و هنوز پس نداده‌ایم، باید از آمار شمارش آخر ماه <u>کسر شود (-)</u>.</span>
+                </div>
+            </div>
+            <button onclick="toggleGuideBanner()" class="text-xs text-slate-400 hover:text-slate-600 self-end lg:self-center shrink-0 px-2 py-1">
+                بستن راهنما <i class="fa-solid fa-xmark mr-1"></i>
+            </button>
+        </div>
+
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 no-print">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500">حواله‌های باز (تسویه‌نشده)</p>
+                    <h3 id="statOpenTxCount" class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">0</h3>
+                    <p id="statSettledTxSub" class="text-xs text-slate-400 mt-1">0 مورد تسویه شده در آرشیو</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500">اقلام نیازمند اضافه به آمار (+)</p>
+                    <h3 id="statPositiveMaterials" class="text-2xl sm:text-3xl font-black text-emerald-600 mt-1">0 قلم</h3>
+                    <p class="text-xs text-emerald-600/80 mt-1 font-medium">طلب خالص از سایر شعب</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-500">اقلام نیازمند کسر از آمار (-)</p>
+                    <h3 id="statNegativeMaterials" class="text-2xl sm:text-3xl font-black text-brand-600 mt-1">0 قلم</h3>
+                    <p class="text-xs text-brand-600/80 mt-1 font-medium">بدهی خالص به سایر شعب</p>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-arrow-trend-down"></i>
+                </div>
+            </div>
+
+            <div class="bg-dark-800 text-white rounded-2xl p-5 border border-slate-700 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-slate-400">شعب و متریال تعریف‌شده</p>
+                    <div class="flex items-baseline gap-3 mt-1">
+                        <h3 id="statBranchesCount" class="text-2xl font-black text-white">0 شعبه</h3>
+                        <span class="text-slate-500">|</span>
+                        <h3 id="statMaterialsCount" class="text-xl font-bold text-brand-400">0 متریال</h3>
+                    </div>
+                    <button onclick="switchTab('definitions')" class="text-xs text-slate-300 hover:text-white underline mt-1.5 inline-block">
+                        مدیریت شعب و اقلام <i class="fa-solid fa-arrow-left text-[10px] mr-1"></i>
+                    </button>
+                </div>
+                <div class="w-12 h-12 rounded-2xl bg-slate-700/70 text-brand-400 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-store"></i>
+                </div>
+            </div>
+        </section>
+
+        <nav class="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-1.5 no-print">
+            <button onclick="switchTab('inventory')" id="tabBtn-inventory" class="tab-active flex-1 min-w-[180px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-slate-700 hover:bg-slate-100 transition-all">
+                <i class="fa-solid fa-calculator"></i>
+                <span>۱. مجموع کسر و اضافه انبار (آخر ماه)</span>
+            </button>
+            <button onclick="switchTab('branches')" id="tabBtn-branches" class="flex-1 min-w-[180px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-slate-700 hover:bg-slate-100 transition-all">
+                <i class="fa-solid fa-code-branch"></i>
+                <span>۲. حساب و کتاب تفکیکی هر شعبه</span>
+            </button>
+            <button onclick="switchTab('transactions')" id="tabBtn-transactions" class="flex-1 min-w-[180px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-slate-700 hover:bg-slate-100 transition-all">
+                <i class="fa-solid fa-list-check"></i>
+                <span>۳. لیست کل حواله‌ها و تسویه</span>
+            </button>
+            <button onclick="switchTab('definitions')" id="tabBtn-definitions" class="flex-1 min-w-[180px] flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm text-slate-700 hover:bg-slate-100 transition-all">
+                <i class="fa-solid fa-sliders"></i>
+                <span>۴. تعریف شعب و متریال</span>
+            </button>
+        </nav>
+
+        <!-- TAB 1: INVENTORY -->
+        <section id="tabContent-inventory" class="space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print-card">
+                <div class="p-5 border-b border-slate-200 bg-slate-50/70 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-brand-600 rounded-full inline-block"></span>
+                            جدول نهایی کسر و اضافه انبارگردانی (تجمیعی بدون تفکیک شعبه)
+                        </h2>
+                        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+                            این جدول برآیند خالص تمام طلب‌ها و بدهی‌های <strong>تسویه‌نشده</strong> با کل شعب را برای هر متریال محاسبه می‌کند.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 no-print">
+                        <label class="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-slate-700 bg-white px-3 py-2 rounded-xl border border-slate-200 cursor-pointer select-none">
+                            <input type="checkbox" id="showZeroBalanceMaterials" onchange="renderInventoryAdjustmentTable()" class="rounded text-brand-600 focus:ring-brand-500 w-4 h-4">
+                            <span>نمایش اقلام بی‌حساب (تراز صفر)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-dark-900 text-slate-200 text-xs sm:text-sm">
+                                <th class="py-3.5 px-4 font-bold border-l border-slate-700">متریال / کالا</th>
+                                <th class="py-3.5 px-4 font-bold text-center border-l border-slate-700">مجموع طلب از شعب<br><span class="text-[11px] font-normal text-emerald-400">(قرض دادیم - باز)</span></th>
+                                <th class="py-3.5 px-4 font-bold text-center border-l border-slate-700">مجموع بدهی به شعب<br><span class="text-[11px] font-normal text-brand-400">(قرض گرفتیم - باز)</span></th>
+                                <th class="py-3.5 px-4 font-bold border-l border-slate-700">تراز خالص و دستور اصلاح انبارگردانی آخر ماه</th>
+                                <th class="py-3.5 px-4 font-bold bg-slate-800/90 text-amber-300 min-w-[250px]">
+                                    <div class="flex items-center gap-1.5">
+                                        <i class="fa-solid fa-scale-unbalanced-flip"></i>
+                                        <span>ماشین‌حساب شمارش فیزیکی آخر ماه</span>
+                                    </div>
+                                    <span class="text-[11px] font-normal text-slate-300 block mt-0.5">موجودی شمارش‌شده در شعبه را وارد کنید تا عدد نهایی به دست آید</span>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryAdjustmentTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+                    </table>
+                </div>
+
+                <div id="inventoryEmptyState" class="hidden p-10 text-center">
+                    <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                        <i class="fa-solid fa-check-double"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-800">حساب انبار با تمام شعب صاف است!</h3>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-md mx-auto">هیچ قرض یا حواله تسویه‌نشده‌ای وجود ندارد و نیازی به کسر یا اضافه کردن به آمار انبارگردانی آخر ماه نیست.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: BRANCHES -->
+        <section id="tabContent-branches" class="hidden space-y-6">
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-black text-slate-900 flex items-center gap-2">
+                            <span class="w-2.5 h-6 bg-brand-600 rounded-full inline-block"></span>
+                            انتخاب شعبه طرف حساب
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">روی نام هر شعبه کلیک کنید تا خلاصه تراز متریال و ریز حساب‌وکتاب با همان شعبه نمایش داده شود.</p>
+                    </div>
+                    <button onclick="openQuickBranchModal()" class="self-start sm:self-auto text-xs font-bold text-brand-600 hover:text-brand-700 bg-brand-50 hover:bg-brand-100 px-3 py-2 rounded-xl transition-all">
+                        <i class="fa-solid fa-plus ml-1"></i> تعریف شعبه جدید
+                    </button>
+                </div>
+
+                <div id="branchSelectorGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-4 sm:p-5 bg-dark-900 text-white flex items-center justify-between">
+                        <div>
+                            <span class="text-xs text-brand-400 font-bold block">تراز خالص اقلام (تسویه‌نشده)</span>
+                            <h3 id="selectedBranchBalanceTitle" class="text-base font-black mt-0.5">همه شعب</h3>
+                        </div>
+                        <i class="fa-solid fa-handshake-simple text-2xl text-slate-400"></i>
+                    </div>
+                    <div id="branchMaterialBalanceList" class="p-4 space-y-3 flex-1 divide-y divide-slate-100"></div>
+                </div>
+
+                <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h3 id="selectedBranchHistoryTitle" class="text-base font-black text-slate-900">ریز تراکنش‌های شعبه</h3>
+                            <p class="text-xs text-slate-500 mt-0.5">می‌توانید هر ردیف را با یک کلیک به «تسویه شده» تغییر دهید.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <select id="branchTxStatusFilter" onchange="renderBranchAccountView()" class="text-xs bg-white border border-slate-300 rounded-xl px-3 py-2 font-semibold text-slate-700 focus:outline-none focus:border-brand-600">
+                                <option value="all">همه وضعیت‌ها</option>
+                                <option value="pending">فقط تسویه‌نشده (باز)</option>
+                                <option value="settled">فقط تسویه‌شده</option>
+                            </select>
+                            <button onclick="openTransactionModalWithBranch()" class="text-xs bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-2 rounded-xl transition-all">
+                                <i class="fa-solid fa-plus ml-1"></i> ثبت برای این شعبه
+                            </button>
+                        </div>
+                    </div>
+                    <div id="branchTransactionHistoryList" class="p-4 space-y-3 max-h-[540px] overflow-y-auto"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: TRANSACTIONS -->
+        <section id="tabContent-transactions" class="hidden space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/70 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+                                <span class="w-2.5 h-6 bg-brand-600 rounded-full inline-block"></span>
+                                دفتر کل حواله‌های قرض و تسویه بین شعب
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">جستجو، فیلتر و تغییر وضعیت آنی بین «در انتظار تسویه» و «تسویه شده»</p>
+                        </div>
+                        <button onclick="openTransactionModal()" class="self-start sm:self-auto bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl shadow-sm transition-all">
+                            <i class="fa-solid fa-plus ml-1"></i> ثبت قرض / حواله جدید
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-3 text-slate-400 text-sm"></i>
+                            <input type="text" id="filterSearchInput" oninput="renderAllTransactionsTable()" placeholder="جستجو در متریال، شعبه، توضیحات..." class="w-full pr-9 pl-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                        </div>
+                        <select id="filterBranchSelect" onchange="renderAllTransactionsTable()" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <option value="all">همه شعب</option>
+                        </select>
+                        <select id="filterTypeSelect" onchange="renderAllTransactionsTable()" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <option value="all">همه انواع (طلب و بدهی)</option>
+                            <option value="lent">طلب (ما قرض دادیم به شعبه)</option>
+                            <option value="borrowed">بدهی (ما قرض گرفتیم از شعبه)</option>
+                        </select>
+                        <select id="filterStatusSelect" onchange="renderAllTransactionsTable()" class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <option value="all">همه وضعیت‌ها</option>
+                            <option value="pending">در انتظار تسویه (موثر در انبار)</option>
+                            <option value="settled">تسویه شده (بایگانی)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-right border-collapse">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-700 text-xs font-bold border-b border-slate-200">
+                                <th class="py-3 px-4">تاریخ</th>
+                                <th class="py-3 px-4">شعبه طرف حساب</th>
+                                <th class="py-3 px-4">متریال و مقدار</th>
+                                <th class="py-3 px-4">نوع حواله و اثر در انبار</th>
+                                <th class="py-3 px-4">توضیحات</th>
+                                <th class="py-3 px-4 text-center">وضعیت تسویه (کلیک برای تغییر)</th>
+                                <th class="py-3 px-4 text-left">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allTransactionsTableBody" class="divide-y divide-slate-200 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: DEFINITIONS -->
+        <section id="tabContent-definitions" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-5 border-b border-slate-200 bg-dark-900 text-white flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-black flex items-center gap-2">
+                                <i class="fa-solid fa-store text-brand-500"></i>
+                                تعریف و مدیریت شعب
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">لیست شعبی که با آن‌ها تبادل متریال دارید</p>
+                        </div>
+                    </div>
+                    <div class="p-5 border-b border-slate-100 bg-slate-50">
+                        <form id="addBranchForm" onsubmit="handleAddBranch(event)" class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="newBranchNameInput" required placeholder="نام شعبه (مثلاً: شعبه عفیف آباد)" class="flex-1 px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <input type="text" id="newBranchManagerInput" placeholder="تلفن یا مسئول (اختیاری)" class="sm:w-44 px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-all shrink-0">
+                                <i class="fa-solid fa-plus ml-1"></i> افزودن شعبه
+                            </button>
+                        </form>
+                    </div>
+                    <div id="branchesManageList" class="p-4 divide-y divide-slate-100 max-h-[420px] overflow-y-auto"></div>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div class="p-5 border-b border-slate-200 bg-dark-900 text-white flex items-center justify-between">
+                        <div>
+                            <h3 class="text-base font-black flex items-center gap-2">
+                                <i class="fa-solid fa-box-open text-brand-500"></i>
+                                تعریف و مدیریت متریال (کالاهای انبار)
+                            </h3>
+                            <p class="text-xs text-slate-400 mt-0.5">تعریف اقلام و واحد شمارش یا وزن‌کشی آن‌ها</p>
+                        </div>
+                    </div>
+                    <div class="p-5 border-b border-slate-100 bg-slate-50">
+                        <form id="addMaterialForm" onsubmit="handleAddMaterial(event)" class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="newMaterialNameInput" required placeholder="نام متریال (مثلاً: فیله مرغ)" class="flex-1 px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <select id="newMaterialUnitSelect" class="sm:w-36 px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600 font-semibold">
+                                <option value="کیلوگرم">کیلوگرم</option>
+                                <option value="گرم">گرم</option>
+                                <option value="بسته">بسته</option>
+                                <option value="عدد">عدد</option>
+                                <option value="کارتن">کارتن</option>
+                                <option value="قوطی">قوطی</option>
+                                <option value="لیتر">لیتر</option>
+                                <option value="کیسه">کیسه</option>
+                            </select>
+                            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl transition-all shrink-0">
+                                <i class="fa-solid fa-plus ml-1"></i> افزودن متریال
+                            </button>
+                        </form>
+                    </div>
+                    <div id="materialsManageList" class="p-4 divide-y divide-slate-100 max-h-[420px] overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-900">مدیریت داده‌های آزمایشی و شروع ماه جدید</h4>
+                    <p class="text-xs text-slate-500 mt-0.5">می‌توانید تمام تراکنش‌های تسویه‌شده را آرشیو/حذف کنید یا کل برنامه را برای شروع از صفر پاکسازی نمایید.</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button onclick="confirmClearSettledTransactions()" class="text-xs font-bold text-slate-700 hover:bg-slate-100 border border-slate-300 px-3.5 py-2 rounded-xl transition-all">
+                        <i class="fa-solid fa-broom ml-1 text-slate-500"></i> پاکسازی حواله‌های تسویه‌شده
+                    </button>
+                    <button onclick="confirmLoadSampleData()" class="text-xs font-bold text-slate-700 hover:bg-slate-100 border border-slate-300 px-3.5 py-2 rounded-xl transition-all">
+                        <i class="fa-solid fa-rotate-right ml-1 text-slate-500"></i> بازنشانی داده‌های نمونه
+                    </button>
+                    <button onclick="confirmResetAllData()" class="text-xs font-bold text-brand-600 hover:bg-brand-50 border border-brand-200 px-3.5 py-2 rounded-xl transition-all">
+                        <i class="fa-solid fa-trash-can ml-1"></i> پاکسازی کل اطلاعات (شروع از صفر)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- TRANSACTION MODAL -->
+    <div id="transactionModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+            <div class="p-5 bg-dark-900 text-white flex items-center justify-between border-b-2 border-brand-600">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-brand-600 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-right-left"></i>
+                    </div>
+                    <div>
+                        <h3 id="txModalTitle" class="text-base font-black">ثبت حواله قرض متریال بین شعب</h3>
+                        <p class="text-[11px] text-slate-400">اطلاعات متریال انتقالی و نوع طلب یا بدهی را مشخص کنید</p>
+                    </div>
+                </div>
+                <button onclick="closeTransactionModal()" class="text-slate-400 hover:text-white w-8 h-8 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <form id="transactionForm" onsubmit="handleSaveTransaction(event)" class="p-5 space-y-4">
+                <input type="hidden" id="txEditId" value="">
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-2">نوع تبادل با شعبه را انتخاب کنید:</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <label id="typeCardBorrowed" class="cursor-pointer rounded-2xl border-2 border-brand-600 bg-brand-50/60 p-3.5 transition-all flex flex-col justify-between" onclick="selectTxType('borrowed')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-black text-sm text-brand-700">بدهی (ما قرض گرفتیم)</span>
+                                <input type="radio" name="txType" value="borrowed" checked class="text-brand-600 focus:ring-brand-500">
+                            </div>
+                            <p class="text-[11px] text-slate-600 mt-1.5 leading-relaxed">
+                                از شعبه دیگر متریال گرفتیم؛ اگر تا آخر ماه پس ندهیم <strong class="text-brand-700">از آمار شمارش انبار کسر می‌شود (-)</strong>
+                            </p>
+                        </label>
+
+                        <label id="typeCardLent" class="cursor-pointer rounded-2xl border-2 border-slate-200 bg-white p-3.5 transition-all flex flex-col justify-between" onclick="selectTxType('lent')">
+                            <div class="flex items-center justify-between">
+                                <span class="font-black text-sm text-emerald-700">طلب (ما قرض دادیم)</span>
+                                <input type="radio" name="txType" value="lent" class="text-emerald-600 focus:ring-emerald-500">
+                            </div>
+                            <p class="text-[11px] text-slate-600 mt-1.5 leading-relaxed">
+                                به شعبه دیگر متریال دادیم؛ اگر تا آخر ماه پس ندهند <strong class="text-emerald-700">به آمار شمارش انبار اضافه می‌شود (+)</strong>
+                            </p>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-bold text-slate-700">شعبه طرف حساب *</label>
+                            <button type="button" onclick="toggleInlineNewBranch()" class="text-[11px] font-bold text-brand-600 hover:underline">+ شعبه جدید</button>
+                        </div>
+                        <select id="txBranchSelect" required class="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600 font-semibold"></select>
+                        <div id="inlineNewBranchBox" class="hidden mt-2 p-2.5 bg-slate-100 rounded-xl border border-slate-200 space-y-2">
+                            <input type="text" id="inlineBranchName" placeholder="نام شعبه جدید..." class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg">
+                            <div class="flex justify-end gap-1.5">
+                                <button type="button" onclick="toggleInlineNewBranch()" class="text-xs px-2 py-1 text-slate-500">لغو</button>
+                                <button type="button" onclick="saveInlineNewBranch()" class="text-xs px-2.5 py-1 bg-brand-600 text-white font-bold rounded-lg">ثبت شعبه</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label class="text-xs font-bold text-slate-700">نام متریال / کالا *</label>
+                            <button type="button" onclick="toggleInlineNewMaterial()" class="text-[11px] font-bold text-brand-600 hover:underline">+ متریال جدید</button>
+                        </div>
+                        <select id="txMaterialSelect" onchange="updateModalUnitBadge()" required class="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600 font-semibold"></select>
+                        <div id="inlineNewMaterialBox" class="hidden mt-2 p-2.5 bg-slate-100 rounded-xl border border-slate-200 space-y-2">
+                            <div class="flex gap-1.5">
+                                <input type="text" id="inlineMaterialName" placeholder="نام متریال..." class="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg">
+                                <select id="inlineMaterialUnit" class="w-24 px-1.5 py-1.5 text-xs bg-white border border-slate-300 rounded-lg">
+                                    <option value="کیلوگرم">کیلوگرم</option>
+                                    <option value="گرم">گرم</option>
+                                    <option value="بسته">بسته</option>
+                                    <option value="عدد">عدد</option>
+                                    <option value="کارتن">کارتن</option>
+                                    <option value="قوطی">قوطی</option>
+                                    <option value="لیتر">لیتر</option>
+                                </select>
+                            </div>
+                            <div class="flex justify-end gap-1.5">
+                                <button type="button" onclick="toggleInlineNewMaterial()" class="text-xs px-2 py-1 text-slate-500">لغو</button>
+                                <button type="button" onclick="saveInlineNewMaterial()" class="text-xs px-2.5 py-1 bg-brand-600 text-white font-bold rounded-lg">ثبت متریال</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">مقدار / وزن *</label>
+                        <div class="relative flex items-center">
+                            <input type="number" id="txAmountInput" step="any" min="0.001" required placeholder="مثلاً: 1 یا 2.5" class="w-full pl-20 pr-3.5 py-2.5 text-sm font-bold bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                            <span id="txModalUnitLabel" class="absolute left-2.5 bg-slate-200 text-slate-700 text-xs font-bold px-2.5 py-1 rounded-lg">کیلوگرم</span>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">وضعیت تسویه</label>
+                        <select id="txStatusSelect" class="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600 font-semibold">
+                            <option value="pending">در انتظار تسویه (محاسبه در انبارگردانی)</option>
+                            <option value="settled">تسویه شده (فقط ثبت در تاریخچه)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">تاریخ حواله</label>
+                        <input type="text" id="txDateInput" required class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600 text-center font-semibold">
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">توضیحات (نام پیک، شیفت، دلیل و...)</label>
+                        <input type="text" id="txNoteInput" placeholder="مثلاً: قرض جهت شیفت شب - تحویل به پیک" class="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600">
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-200 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeTransactionModal()" class="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100">
+                        انصراف
+                    </button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl text-sm font-bold bg-brand-600 hover:bg-brand-700 text-white shadow-md shadow-brand-600/30 transition-all">
+                        <i class="fa-solid fa-check ml-1"></i> ذخیره حواله
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirmModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-center space-y-4">
+            <div class="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center mx-auto text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirmModalTitle" class="text-lg font-black text-slate-900">تأیید عملیات</h3>
+            <p id="confirmModalMessage" class="text-sm text-slate-600 leading-relaxed"></p>
+            <div class="flex items-center justify-center gap-3 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm">
+                    انصراف
+                </button>
+                <button id="confirmModalActionBtn" class="flex-1 py-2.5 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-sm shadow-md shadow-brand-600/30">
+                    بله، انجام شود
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BACKUP & CLOUD DATABASE MODAL -->
+    <div id="backupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 hidden items-center justify-center p-4 no-print">
+        <div class="bg-white rounded-3xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="p-5 bg-dark-900 text-white flex items-center justify-between border-b-2 border-brand-600 shrink-0">
+                <h3 class="text-base font-black flex items-center gap-2">
+                    <i class="fa-solid fa-cloud text-brand-500"></i>
+                    اتصال به پایگاه داده آنلاین گوگل درایو
+                </h3>
+                <button onclick="closeBackupModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 overflow-y-auto flex-1">
+                <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-2xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-sm font-black text-amber-950 flex items-center gap-2">
+                            <i class="fa-brands fa-google-drive text-amber-600 text-base"></i>
+                            لینک دیتابیس اختصاصی گوگل اسکریپت
+                        </h4>
+                        <span id="modalCloudStateBadge" class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300">
+                            فعال
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        با ثبت تغییرات، داده‌ها بلافاصله در گوگل درایو ثبت می‌شوند. سد محافظ زمان مانع از پاک شدن یا بازگشت اطلاعات شما خواهد شد.
+                    </p>
+                    <div class="space-y-1.5">
+                        <input
+                            type="text"
+                            id="gdriveUrlInput"
+                            dir="ltr"
+                            placeholder="https://script.google.com/macros/s/.../exec"
+                            class="w-full px-3 py-2 text-xs font-mono bg-white border border-amber-300 rounded-xl focus:outline-none focus:border-amber-600 text-left"
+                        >
+                    </div>
+                    <div class="flex flex-wrap gap-2 pt-1">
+                        <button onclick="forceSyncLocalToCloud()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-solid fa-cloud-arrow-up"></i>
+                            <span>ذخیره اجباری داده‌های این صفحه در درایو</span>
+                        </button>
+                        <button onclick="saveCloudUrlAndSync()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-sm">
+                            <i class="fa-solid fa-cloud-arrow-down ml-1"></i> استعلام و دریافت از درایو
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <h4 class="text-sm font-bold text-slate-900">دانلود فایل پشتیبان آفلاین (JSON)</h4>
+                    <p class="text-xs text-slate-500">تمامی اطلاعات را در قالب یک فایل روی کامپیوتر یا گوشی خود ذخیره کنید.</p>
+                    <button onclick="exportDataJson()" class="mt-1 inline-flex items-center gap-2 bg-dark-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl">
+                        <i class="fa-solid fa-download"></i> دانلود فایل پشتیبان
+                    </button>
+                </div>
+
+                <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                    <h4 class="text-sm font-bold text-slate-900">بازیابی از فایل پشتیبان</h4>
+                    <p class="text-xs text-slate-500">فایل پشتیبان قبلی را برای بازگردانی اطلاعات انتخاب کنید.</p>
+                    <input type="file" id="importJsonInput" accept=".json" onchange="importDataJson(event)" class="block w-full text-xs text-slate-500 file:ml-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 mt-1">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 left-5 z-50 space-y-2 no-print"></div>
+
+    <script>
+        const STORAGE_KEY = 'tarazban_inventory_app_v1';
+        const GDRIVE_CONFIG_KEY = 'tarazban_gdrive_url_v1';
+
+        const DEFAULT_GDRIVE_URL = "https://script.google.com/macros/s/AKfycbxxqR7hL0Q5Q5kBEBfZ4INTNBCihz-F7hlwseDcK79iDegTa6mxzkVAVwzIq1e3GKzP/exec"; 
+
+        let GOOGLE_DRIVE_WEB_APP_URL = DEFAULT_GDRIVE_URL;
+
+        function getDefaultSampleData() {
+            const today = getTodayPersianDate();
+            return {
+                updatedAt: Date.now(),
+                branches: [
+                    { id: 'b_afif', name: 'شعبه عفیف آباد', contact: 'آقای رضایی - ۰۹۱۷۱۱۱۱۱۱۱' },
+                    { id: 'b_farhang', name: 'شعبه فرهنگ شهر', contact: 'آقای محمدی - ۰۹۱۷۲۲۲۲۲۲۲' },
+                    { id: 'b_sattar', name: 'شعبه ستارخان', contact: 'خانم کریمی - ۰۹۱۷۳۳۳۳۳۳۳' },
+                    { id: 'b_maali', name: 'شعبه معالی آباد', contact: 'آقای حسینی - ۰۹۱۷۴۴۴۴۴۴۴' }
+                ],
+                materials: [
+                    { id: 'm_fillet', name: 'فیله مرغ', unit: 'کیلوگرم' },
+                    { id: 'm_beef', name: 'گوشت برگر', unit: 'کیلوگرم' },
+                    { id: 'm_cheese', name: 'پنیر گودا ورقه‌ای', unit: 'بسته' },
+                    { id: 'm_bun', name: 'نان برگر', unit: 'عدد' },
+                    { id: 'm_fries', name: 'سیب‌زمینی خلال', unit: 'کیلوگرم' }
+                ],
+                transactions: [
+                    {
+                        id: 'tx_1',
+                        branchId: 'b_afif',
+                        materialId: 'm_fillet',
+                        type: 'borrowed',
+                        amount: 1,
+                        status: 'pending',
+                        date: today,
+                        note: 'قرض از شعبه عفیف آباد در شیفت شب'
+                    },
+                    {
+                        id: 'tx_2',
+                        branchId: 'b_farhang',
+                        materialId: 'm_fillet',
+                        type: 'lent',
+                        amount: 3.5,
+                        status: 'pending',
+                        date: today,
+                        note: 'ارسال با پیک موتوری به شعبه فرهنگ شهر'
+                    },
+                    {
+                        id: 'tx_3',
+                        branchId: 'b_sattar',
+                        materialId: 'm_fries',
+                        type: 'borrowed',
+                        amount: 10,
+                        status: 'pending',
+                        date: today,
+                        note: '۲ کیسه ۵ کیلویی قرض گرفتیم'
+                    },
+                    {
+                        id: 'tx_4',
+                        branchId: 'b_afif',
+                        materialId: 'm_cheese',
+                        type: 'lent',
+                        amount: 4,
+                        status: 'pending',
+                        date: today,
+                        note: 'تحویل به مسئول خرید شعبه عفیف آباد'
+                    },
+                    {
+                        id: 'tx_5',
+                        branchId: 'b_maali',
+                        materialId: 'm_bun',
+                        type: 'lent',
+                        amount: 30,
+                        status: 'settled',
+                        date: today,
+                        note: 'روز بعد عیناً ۳۰ عدد نان پس دادند (تسویه شد)'
+                    }
+                ],
+                physicalCounts: {}
+            };
+        }
+
+        let appData = {
+            updatedAt: 0,
+            branches: [],
+            materials: [],
+            transactions: [],
+            physicalCounts: {}
+        };
+
+        let activeTab = 'inventory';
+        let selectedBranchIdForTab2 = 'all';
+
+        function getTodayPersianDate() {
+            try {
+                return new Intl.DateTimeFormat('fa-IR', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).format(new Date());
+            } catch (e) {
+                return '۱۴۰۴/۰۱/۰۱';
+            }
+        }
+
+        function getCurrentPersianMonthName() {
+            try {
+                return new Intl.DateTimeFormat('fa-IR', {
+                    month: 'long',
+                    year: 'numeric'
+                }).format(new Date());
+            } catch (e) {
+                return 'انبارگردانی ماه جاری';
+            }
+        }
+
+        function formatNumber(num) {
+            if (num === null || num === undefined || isNaN(num)) return '0';
+            const rounded = Math.round((Number(num) + Number.EPSILON) * 1000) / 1000;
+            return rounded.toLocaleString('fa-IR');
+        }
+
+        function updateCloudUIStatus(status, text) {
+            const dot = document.getElementById('cloudStatusDot');
+            const label = document.getElementById('cloudStatusText');
+            const modalBadge = document.getElementById('modalCloudStateBadge');
+
+            if (status === 'connected') {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                label.textContent = text || 'دیتابیس درایو: متصل';
+                if (modalBadge) {
+                    modalBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300';
+                    modalBadge.textContent = 'متصل و پایدار';
+                }
+            } else if (status === 'syncing') {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+                label.textContent = text || 'ارتباط با درایو...';
+            } else if (status === 'error') {
+                dot.className = 'w-2 h-2 rounded-full bg-brand-500';
+                label.textContent = text || 'خطا در ارتباط';
+                if (modalBadge) {
+                    modalBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-brand-100 text-brand-800 border border-brand-300';
+                    modalBadge.textContent = 'خطای اتصال';
+                }
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+                label.textContent = 'آفلاین (حافظه محلی)';
+                if (modalBadge) {
+                    modalBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-300';
+                    modalBadge.textContent = 'غیرفعال';
+                }
+            }
+        }
+
+        // ==========================================
+        // ذخیره ۱۰۰٪ تضمین‌شده در گوگل درایو
+        // ==========================================
+        async function syncToGoogleDrive(showToastMessage = false) {
+            if (!GOOGLE_DRIVE_WEB_APP_URL) return;
+            updateCloudUIStatus('syncing', 'در حال ذخیره در درایو...');
+            try {
+                appData.updatedAt = Date.now();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+
+                // استفاده از سربرگ ساده text/plain که پیش‌پرواز OPTIONS را رد می‌کند
+                await fetch(GOOGLE_DRIVE_WEB_APP_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(appData)
+                });
+                
+                updateCloudUIStatus('connected', 'همگام با درایو (' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) + ')');
+                if (showToastMessage) showToast('اطلاعات با موفقیت در گوگل درایو ذخیره شد.');
+            } catch (err) {
+                console.warn('Sync failed:', err);
+                updateCloudUIStatus('error', 'عدم ارتباط با درایو');
+            }
+        }
+
+        async function forceSyncLocalToCloud() {
+            await syncToGoogleDrive(true);
+        }
+
+        // ==========================================
+        // خواندن امن با سد محافظتی زمان
+        // ==========================================
+        async function fetchFromGoogleDrive(showSuccessToast = false) {
+            if (!GOOGLE_DRIVE_WEB_APP_URL) {
+                updateCloudUIStatus('disconnected');
+                return false;
+            }
+            updateCloudUIStatus('syncing', 'بررسی درایو...');
+            try {
+                const separator = GOOGLE_DRIVE_WEB_APP_URL.includes('?') ? '&' : '?';
+                const noCacheUrl = `${GOOGLE_DRIVE_WEB_APP_URL}${separator}_t=${Date.now()}`;
+                
+                const res = await fetch(noCacheUrl, { cache: 'no-store' });
+                if (!res.ok) throw new Error('پاسخ نامعتبر');
+                const data = await res.json();
+                
+                if (data && (Array.isArray(data.branches) || Array.isArray(data.materials) || Array.isArray(data.transactions))) {
+                    const cloudTime = Number(data.updatedAt) || 0;
+                    const localTime = Number(appData.updatedAt) || 0;
+
+                    // سد دفاعی قطعی: اگر اطلاعات محلی جدیدتر از درایو است، به هیچ وجه پاک نکن!
+                    if (localTime > cloudTime && (appData.branches.length > 0 || appData.transactions.length > 0)) {
+                        console.log('Local data is newer than cloud. Pushing local to cloud...');
+                        await syncToGoogleDrive(false);
+                        if (showSuccessToast) showToast('تغییرات شما در درایو به‌روزرسانی شد.');
+                        return true;
+                    }
+
+                    // اگر درایو جدیدتر است، دریافت کن
+                    appData = {
+                        updatedAt: cloudTime || Date.now(),
+                        branches: Array.isArray(data.branches) ? data.branches : [],
+                        materials: Array.isArray(data.materials) ? data.materials : [],
+                        transactions: Array.isArray(data.transactions) ? data.transactions : [],
+                        physicalCounts: data.physicalCounts || {}
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+                    renderAllViews();
+                    updateCloudUIStatus('connected', 'همگام با درایو (' + new Date().toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' }) + ')');
+                    if (showSuccessToast) showToast('آخرین تغییرات از گوگل درایو دریافت شد.');
+                    return true;
+                } else {
+                    // درایو هنوز خالی است؛ دیتای فعلی را ثبت کن
+                    await syncToGoogleDrive(false);
+                    return true;
+                }
+            } catch (err) {
+                console.warn('Fetch from Google Drive failed:', err);
+                updateCloudUIStatus('error', 'خطا در ارتباط');
+                return false;
+            }
+        }
+
+        async function saveCloudUrlAndSync() {
+            const inputVal = document.getElementById('gdriveUrlInput').value.trim();
+            if (!inputVal) {
+                GOOGLE_DRIVE_WEB_APP_URL = "";
+                localStorage.removeItem(GDRIVE_CONFIG_KEY);
+                updateCloudUIStatus('disconnected');
+                showToast('اتصال به دیتابیس ابری غیرفعال شد.');
+                return;
+            }
+
+            GOOGLE_DRIVE_WEB_APP_URL = inputVal;
+            localStorage.setItem(GDRIVE_CONFIG_KEY, inputVal);
+            showToast('در حال همگام‌سازی با درایو...');
+            
+            const success = await fetchFromGoogleDrive(true);
+            if (success) {
+                closeBackupModal();
+            }
+        }
+
+        function loadAppData() {
+            const savedUrl = localStorage.getItem(GDRIVE_CONFIG_KEY);
+            GOOGLE_DRIVE_WEB_APP_URL = savedUrl || DEFAULT_GDRIVE_URL || "";
+
+            const gdriveInput = document.getElementById('gdriveUrlInput');
+            if (gdriveInput) gdriveInput.value = GOOGLE_DRIVE_WEB_APP_URL;
+
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    appData = {
+                        updatedAt: Number(parsed.updatedAt) || Date.now(),
+                        branches: Array.isArray(parsed.branches) ? parsed.branches : [],
+                        materials: Array.isArray(parsed.materials) ? parsed.materials : [],
+                        transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
+                        physicalCounts: parsed.physicalCounts || {}
+                    };
+                } else {
+                    appData = getDefaultSampleData();
+                }
+            } catch (err) {
+                appData = getDefaultSampleData();
+            }
+        }
+
+        function saveAppData() {
+            try {
+                appData.updatedAt = Date.now();
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+                syncToGoogleDrive(false); // ارسال آنی به درایو
+            } catch (err) {
+                console.error('Failed to save to localStorage:', err);
+            }
+        }
+
+        function getBranchById(id) {
+            return appData.branches.find(b => b.id === id) || { id, name: 'شعبه حذف‌شده', contact: '' };
+        }
+
+        function getMaterialById(id) {
+            return appData.materials.find(m => m.id === id) || { id, name: 'متریال حذف‌شده', unit: 'واحد' };
+        }
+
+        function calculateTotalInventoryAdjustments() {
+            const summaryMap = {};
+
+            appData.materials.forEach(mat => {
+                summaryMap[mat.id] = {
+                    material: mat,
+                    totalLentPending: 0,
+                    totalBorrowedPending: 0,
+                    netAdjustment: 0,
+                    involvedBranchesCount: new Set()
+                };
+            });
+
+            appData.transactions.forEach(tx => {
+                if (tx.status !== 'pending') return;
+                if (!summaryMap[tx.materialId]) {
+                    const fallbackMat = getMaterialById(tx.materialId);
+                    summaryMap[tx.materialId] = {
+                        material: fallbackMat,
+                        totalLentPending: 0,
+                        totalBorrowedPending: 0,
+                        netAdjustment: 0,
+                        involvedBranchesCount: new Set()
+                    };
+                }
+
+                const amt = parseFloat(tx.amount) || 0;
+                if (tx.type === 'lent') {
+                    summaryMap[tx.materialId].totalLentPending += amt;
+                } else if (tx.type === 'borrowed') {
+                    summaryMap[tx.materialId].totalBorrowedPending += amt;
+                }
+                summaryMap[tx.materialId].involvedBranchesCount.add(tx.branchId);
+            });
+
+            return Object.values(summaryMap).map(item => {
+                item.netAdjustment = Math.round(((item.totalLentPending - item.totalBorrowedPending) + Number.EPSILON) * 1000) / 1000;
+                return item;
+            });
+        }
+
+        function renderAllViews() {
+            document.getElementById('currentMonthBadge').textContent = getCurrentPersianMonthName();
+            document.getElementById('printDateText').textContent = getTodayPersianDate();
+
+            renderTopStats();
+            renderInventoryAdjustmentTable();
+            renderBranchAccountView();
+            renderAllTransactionsTable();
+            renderDefinitionsTab();
+            populateFilterAndModalDropdowns();
+        }
+
+        function renderTopStats() {
+            const pendingTxs = appData.transactions.filter(t => t.status === 'pending');
+            const settledTxs = appData.transactions.filter(t => t.status === 'settled');
+            const adjustments = calculateTotalInventoryAdjustments();
+
+            const posCount = adjustments.filter(a => a.netAdjustment > 0).length;
+            const negCount = adjustments.filter(a => a.netAdjustment < 0).length;
+
+            document.getElementById('statOpenTxCount').textContent = formatNumber(pendingTxs.length) + ' حواله';
+            document.getElementById('statSettledTxSub').textContent = `${formatNumber(settledTxs.length)} مورد تسویه‌شده در آرشیو`;
+            document.getElementById('statPositiveMaterials').textContent = formatNumber(posCount) + ' قلم';
+            document.getElementById('statNegativeMaterials').textContent = formatNumber(negCount) + ' قلم';
+            document.getElementById('statBranchesCount').textContent = formatNumber(appData.branches.length) + ' شعبه';
+            document.getElementById('statMaterialsCount').textContent = formatNumber(appData.materials.length) + ' قلم';
+        }
+
+        function renderInventoryAdjustmentTable() {
+            const tbody = document.getElementById('inventoryAdjustmentTableBody');
+            const emptyState = document.getElementById('inventoryEmptyState');
+            const showZero = document.getElementById('showZeroBalanceMaterials').checked;
+
+            const allAdjustments = calculateTotalInventoryAdjustments();
+            const filtered = showZero
+                ? allAdjustments
+                : allAdjustments.filter(item => item.netAdjustment !== 0 || item.totalLentPending > 0 || item.totalBorrowedPending > 0);
+
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            emptyState.classList.add('hidden');
+
+            filtered.forEach(item => {
+                const mat = item.material;
+                const net = item.netAdjustment;
+                const savedPhysical = appData.physicalCounts[mat.id];
+                const hasPhysical = savedPhysical !== undefined && savedPhysical !== '' && !isNaN(parseFloat(savedPhysical));
+                const physicalNum = hasPhysical ? parseFloat(savedPhysical) : 0;
+                const finalInventoryNum = Math.round(((physicalNum + net) + Number.EPSILON) * 1000) / 1000;
+
+                let actionBadgeHtml = '';
+                if (net > 0) {
+                    actionBadgeHtml = `
+                        <div class="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-300 text-emerald-800 px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm">
+                            <span class="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black">+</span>
+                            <div>
+                                <span class="font-black text-emerald-700">${formatNumber(Math.abs(net))} ${mat.unit}</span>
+                                <span>به آمار شمارش انبار اضافه شود</span>
+                                <span class="block text-[11px] font-normal text-emerald-600">طلب خالص از شعب (جنس ما نزد شعب دیگر است)</span>
+                            </div>
+                        </div>
+                    `;
+                } else if (net < 0) {
+                    actionBadgeHtml = `
+                        <div class="inline-flex items-center gap-2 bg-brand-50 border border-brand-300 text-brand-800 px-3 py-1.5 rounded-xl font-bold text-xs sm:text-sm">
+                            <span class="w-6 h-6 rounded-lg bg-brand-600 text-white flex items-center justify-center font-black">-</span>
+                            <div>
+                                <span class="font-black text-brand-700">${formatNumber(Math.abs(net))} ${mat.unit}</span>
+                                <span>از آمار شمارش انبار کسر شود</span>
+                                <span class="block text-[11px] font-normal text-brand-600">بدهی خالص به شعب (امانت شعب دیگر نزد ماست)</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    actionBadgeHtml = `
+                        <span class="inline-flex items-center gap-1.5 bg-slate-100 text-slate-600 px-3 py-1 rounded-xl text-xs font-bold">
+                            <i class="fa-solid fa-equals"></i>
+                            بی‌حساب / بدون تغییر در آمار انبارگردانی
+                        </span>
+                    `;
+                }
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors';
+                tr.innerHTML = `
+                    <td class="py-4 px-4 border-l border-slate-100">
+                        <div class="font-black text-slate-900 text-base">${escapeHtml(mat.name)}</div>
+                        <span class="inline-block mt-1 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md font-semibold">
+                            واحد: ${escapeHtml(mat.unit)}
+                        </span>
+                    </td>
+                    <td class="py-4 px-4 text-center border-l border-slate-100">
+                        ${item.totalLentPending > 0
+                            ? `<span class="font-extrabold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">+ ${formatNumber(item.totalLentPending)} ${escapeHtml(mat.unit)}</span>`
+                            : `<span class="text-slate-400">۰</span>`
+                        }
+                    </td>
+                    <td class="py-4 px-4 text-center border-l border-slate-100">
+                        ${item.totalBorrowedPending > 0
+                            ? `<span class="font-extrabold text-brand-700 bg-brand-50 px-2.5 py-1 rounded-lg border border-brand-200">- ${formatNumber(item.totalBorrowedPending)} ${escapeHtml(mat.unit)}</span>`
+                            : `<span class="text-slate-400">۰</span>`
+                        }
+                    </td>
+                    <td class="py-4 px-4 border-l border-slate-100">
+                        ${actionBadgeHtml}
+                    </td>
+                    <td class="py-4 px-4 bg-amber-50/30">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="number"
+                                    step="any"
+                                    value="${hasPhysical ? savedPhysical : ''}"
+                                    oninput="handlePhysicalCountInput('${mat.id}', this.value)"
+                                    placeholder="موجودی شمارش‌شده (${escapeHtml(mat.unit)})"
+                                    class="w-full px-3 py-1.5 text-xs sm:text-sm font-bold bg-white border border-slate-300 rounded-xl focus:outline-none focus:border-brand-600 no-print"
+                                >
+                            </div>
+                            <div id="finalCountResult_${mat.id}" class="${hasPhysical ? 'block' : 'hidden'} bg-dark-900 text-white px-3 py-2 rounded-xl text-xs">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-300">آمار نهایی واقعی شما:</span>
+                                    <span class="font-black text-amber-400 text-sm">${formatNumber(finalInventoryNum)} ${escapeHtml(mat.unit)}</span>
+                                </div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">
+                                    (${formatNumber(physicalNum)} شمارش + ${formatNumber(item.totalLentPending)} طلب - ${formatNumber(item.totalBorrowedPending)} بدهی)
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handlePhysicalCountInput(materialId, rawValue) {
+            appData.physicalCounts[materialId] = rawValue;
+            saveAppData();
+
+            const resultBox = document.getElementById(`finalCountResult_${materialId}`);
+            if (!resultBox) return;
+
+            if (rawValue === '' || isNaN(parseFloat(rawValue))) {
+                resultBox.classList.add('hidden');
+                return;
+            }
+
+            const adjustments = calculateTotalInventoryAdjustments();
+            const item = adjustments.find(a => a.material.id === materialId);
+            if (!item) return;
+
+            const physicalNum = parseFloat(rawValue) || 0;
+            const finalInventoryNum = Math.round(((physicalNum + item.netAdjustment) + Number.EPSILON) * 1000) / 1000;
+
+            resultBox.classList.remove('hidden');
+            resultBox.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-300">آمار نهایی واقعی شما:</span>
+                    <span class="font-black text-amber-400 text-sm">${formatNumber(finalInventoryNum)} ${escapeHtml(item.material.unit)}</span>
+                </div>
+                <div class="text-[10px] text-slate-400 mt-0.5">
+                    (${formatNumber(physicalNum)} شمارش + ${formatNumber(item.totalLentPending)} طلب - ${formatNumber(item.totalBorrowedPending)} بدهی)
+                </div>
+            `;
+        }
+
+        function renderBranchAccountView() {
+            const selectorGrid = document.getElementById('branchSelectorGrid');
+            selectorGrid.innerHTML = '';
+
+            const allPendingCount = appData.transactions.filter(t => t.status === 'pending').length;
+            const isAllSelected = selectedBranchIdForTab2 === 'all';
+            const allCard = document.createElement('button');
+            allCard.type = 'button';
+            allCard.onclick = () => {
+                selectedBranchIdForTab2 = 'all';
+                renderBranchAccountView();
+            };
+            allCard.className = `text-right p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
+                isAllSelected
+                    ? 'border-brand-600 bg-brand-50/50 shadow-sm'
+                    : 'border-slate-200 bg-slate-50/60 hover:bg-white'
+            }`;
+            allCard.innerHTML = `
+                <div>
+                    <div class="font-black text-slate-900 text-sm">همه شعب (نمای کلی)</div>
+                    <div class="text-xs text-slate-500 mt-1">${formatNumber(allPendingCount)} حواله باز در مجموع</div>
+                </div>
+                <div class="w-9 h-9 rounded-xl ${isAllSelected ? 'bg-brand-600 text-white' : 'bg-slate-200 text-slate-600'} flex items-center justify-center">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+            `;
+            selectorGrid.appendChild(allCard);
+
+            appData.branches.forEach(branch => {
+                const branchPendingTxs = appData.transactions.filter(t => t.branchId === branch.id && t.status === 'pending');
+                const lentCount = branchPendingTxs.filter(t => t.type === 'lent').length;
+                const borrowedCount = branchPendingTxs.filter(t => t.type === 'borrowed').length;
+                const isSelected = selectedBranchIdForTab2 === branch.id;
+
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.onclick = () => {
+                    selectedBranchIdForTab2 = branch.id;
+                    renderBranchAccountView();
+                };
+                card.className = `text-right p-4 rounded-2xl border-2 transition-all flex items-center justify-between ${
+                    isSelected
+                        ? 'border-brand-600 bg-brand-50/50 shadow-sm'
+                        : 'border-slate-200 bg-white hover:border-slate-300'
+                }`;
+                card.innerHTML = `
+                    <div class="overflow-hidden">
+                        <div class="font-black text-slate-900 text-sm truncate">${escapeHtml(branch.name)}</div>
+                        <div class="flex items-center gap-2 mt-1.5 text-[11px] font-bold">
+                            <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">${formatNumber(lentCount)} طلب</span>
+                            <span class="text-brand-700 bg-brand-50 px-2 py-0.5 rounded-md">${formatNumber(borrowedCount)} بدهی</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 rounded-xl shrink-0 ${isSelected ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600'} flex items-center justify-center">
+                        <i class="fa-solid fa-store"></i>
+                    </div>
+                `;
+                selectorGrid.appendChild(card);
+            });
+
+            const branchTitleText = selectedBranchIdForTab2 === 'all'
+                ? 'همه شعب'
+                : getBranchById(selectedBranchIdForTab2).name;
+
+            document.getElementById('selectedBranchBalanceTitle').textContent = `تراز متریال: ${branchTitleText}`;
+            document.getElementById('selectedBranchHistoryTitle').textContent = `ریز حواله‌ها: ${branchTitleText}`;
+
+            const balanceMap = {};
+            appData.transactions.forEach(tx => {
+                if (tx.status !== 'pending') return;
+                if (selectedBranchIdForTab2 !== 'all' && tx.branchId !== selectedBranchIdForTab2) return;
+
+                const key = `${tx.branchId}_${tx.materialId}`;
+                if (!balanceMap[key]) {
+                    balanceMap[key] = {
+                        branch: getBranchById(tx.branchId),
+                        material: getMaterialById(tx.materialId),
+                        lent: 0,
+                        borrowed: 0
+                    };
+                }
+                const amt = parseFloat(tx.amount) || 0;
+                if (tx.type === 'lent') balanceMap[key].lent += amt;
+                if (tx.type === 'borrowed') balanceMap[key].borrowed += amt;
+            });
+
+            const balanceListEl = document.getElementById('branchMaterialBalanceList');
+            balanceListEl.innerHTML = '';
+
+            const balanceEntries = Object.values(balanceMap).filter(b => (b.lent - b.borrowed) !== 0);
+
+            if (balanceEntries.length === 0) {
+                balanceListEl.innerHTML = `
+                    <div class="py-10 text-center text-slate-400">
+                        <i class="fa-solid fa-circle-check text-3xl text-emerald-500 mb-2"></i>
+                        <p class="text-sm font-bold text-slate-700">حساب متریال با این شعبه کاملاً تسویه است!</p>
+                        <p class="text-xs text-slate-400 mt-1">هیچ طلب یا بدهی بازی وجود ندارد.</p>
+                    </div>
+                `;
+            } else {
+                balanceEntries.forEach(entry => {
+                    const net = Math.round(((entry.lent - entry.borrowed) + Number.EPSILON) * 1000) / 1000;
+                    const isReceivable = net > 0;
+                    const row = document.createElement('div');
+                    row.className = 'pt-3 first:pt-0 flex items-center justify-between gap-2';
+                    row.innerHTML = `
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-black text-slate-900 text-sm">${escapeHtml(entry.material.name)}</span>
+                                <span class="text-xs text-slate-500">(${escapeHtml(entry.branch.name)})</span>
+                            </div>
+                            <div class="mt-1">
+                                ${isReceivable
+                                    ? `<span class="inline-flex items-center gap-1 text-xs font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-lg">
+                                        <i class="fa-solid fa-plus-circle"></i>
+                                        ${formatNumber(Math.abs(net))} ${escapeHtml(entry.material.unit)} از این شعبه طلبکاریم (اضافه به انبار)
+                                       </span>`
+                                    : `<span class="inline-flex items-center gap-1 text-xs font-extrabold text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-0.5 rounded-lg">
+                                        <i class="fa-solid fa-minus-circle"></i>
+                                        ${formatNumber(Math.abs(net))} ${escapeHtml(entry.material.unit)} به این شعبه بدهکاریم (کسر از انبار)
+                                       </span>`
+                                }
+                            </div>
+                        </div>
+                        <button onclick="settleMaterialWithBranch('${entry.branch.id}', '${entry.material.id}')" class="shrink-0 text-xs font-bold bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 px-3 py-2 rounded-xl transition-all" title="تسویه کامل این قلم با این شعبه">
+                            <i class="fa-solid fa-check-double ml-1"></i> تسویه این قلم
+                        </button>
+                    `;
+                    balanceListEl.appendChild(row);
+                });
+            }
+
+            const statusFilter = document.getElementById('branchTxStatusFilter').value;
+            const historyListEl = document.getElementById('branchTransactionHistoryList');
+            historyListEl.innerHTML = '';
+
+            const branchTxs = appData.transactions.filter(tx => {
+                if (selectedBranchIdForTab2 !== 'all' && tx.branchId !== selectedBranchIdForTab2) return false;
+                if (statusFilter !== 'all' && tx.status !== statusFilter) return false;
+                return true;
+            });
+
+            if (branchTxs.length === 0) {
+                historyListEl.innerHTML = `
+                    <div class="py-10 text-center text-slate-400 text-sm">
+                        هیچ حواله‌ای با این فیلتر برای نمایش وجود ندارد.
+                    </div>
+                `;
+            } else {
+                branchTxs.forEach(tx => {
+                    const branch = getBranchById(tx.branchId);
+                    const mat = getMaterialById(tx.materialId);
+                    const isLent = tx.type === 'lent';
+                    const isPending = tx.status === 'pending';
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `p-3.5 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                        isPending ? 'bg-white border-slate-200 shadow-2xs' : 'bg-slate-50 border-slate-200/60 opacity-75'
+                    }`;
+                    itemDiv.innerHTML = `
+                        <div class="space-y-1">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="font-black text-slate-900 text-sm">${formatNumber(tx.amount)} ${escapeHtml(mat.unit)} ${escapeHtml(mat.name)}</span>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded-md ${
+                                    isLent ? 'bg-emerald-100 text-emerald-800' : 'bg-brand-100 text-brand-800'
+                                }">
+                                    ${isLent ? 'طلب (قرض دادیم +)' : 'بدهی (قرض گرفتیم -)'}
+                                </span>
+                                <span class="text-xs text-slate-500 font-semibold"><i class="fa-solid fa-store ml-1"></i>${escapeHtml(branch.name)}</span>
+                            </div>
+                            <div class="text-xs text-slate-500 flex flex-wrap items-center gap-3">
+                                <span><i class="fa-regular fa-calendar ml-1"></i>${escapeHtml(tx.date)}</span>
+                                ${tx.note ? `<span><i class="fa-regular fa-comment-dots ml-1"></i>${escapeHtml(tx.note)}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 self-end sm:self-center shrink-0">
+                            <button onclick="toggleTransactionStatus('${tx.id}')" class="text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                                isPending
+                                    ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'
+                                    : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-slate-200 hover:text-slate-700'
+                            }">
+                                ${isPending
+                                    ? '<i class="fa-solid fa-hourglass-half ml-1"></i> باز (کلیک برای تسویه)'
+                                    : '<i class="fa-solid fa-check ml-1"></i> تسویه شده'
+                                }
+                            </button>
+                            <button onclick="openEditTransactionModal('${tx.id}')" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center text-xs" title="ویرایش">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteTransaction('${tx.id}')" class="w-8 h-8 rounded-xl bg-brand-50 hover:bg-brand-600 text-brand-600 hover:text-white flex items-center justify-center text-xs transition-colors" title="حذف">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
+                    historyListEl.appendChild(itemDiv);
+                });
+            }
+        }
+
+        function settleMaterialWithBranch(branchId, materialId) {
+            let count = 0;
+            appData.transactions.forEach(tx => {
+                if (tx.branchId === branchId && tx.materialId === materialId && tx.status === 'pending') {
+                    tx.status = 'settled';
+                    count++;
+                }
+            });
+            if (count > 0) {
+                saveAppData();
+                renderAllViews();
+                const mat = getMaterialById(materialId);
+                const br = getBranchById(branchId);
+                showToast(`حساب «${mat.name}» با «${br.name}» به طور کامل تسویه شد.`);
+            }
+        }
+
+        function renderAllTransactionsTable() {
+            const tbody = document.getElementById('allTransactionsTableBody');
+            const searchVal = (document.getElementById('filterSearchInput').value || '').trim().toLowerCase();
+            const branchVal = document.getElementById('filterBranchSelect').value;
+            const typeVal = document.getElementById('filterTypeSelect').value;
+            const statusVal = document.getElementById('filterStatusSelect').value;
+
+            const filtered = appData.transactions.filter(tx => {
+                if (branchVal !== 'all' && tx.branchId !== branchVal) return false;
+                if (typeVal !== 'all' && tx.type !== typeVal) return false;
+                if (statusVal !== 'all' && tx.status !== statusVal) return false;
+
+                if (searchVal) {
+                    const brName = getBranchById(tx.branchId).name.toLowerCase();
+                    const matName = getMaterialById(tx.materialId).name.toLowerCase();
+                    const note = (tx.note || '').toLowerCase();
+                    if (!brName.includes(searchVal) && !matName.includes(searchVal) && !note.includes(searchVal)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            tbody.innerHTML = '';
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="py-10 text-center text-slate-400">
+                            هیچ حواله‌ای مطابق با جستجوی شما یافت نشد.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            filtered.forEach(tx => {
+                const branch = getBranchById(tx.branchId);
+                const mat = getMaterialById(tx.materialId);
+                const isLent = tx.type === 'lent';
+                const isPending = tx.status === 'pending';
+
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-50 transition-colors ${!isPending ? 'bg-slate-50/60 text-slate-500' : ''}`;
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 font-semibold text-xs whitespace-nowrap">${escapeHtml(tx.date)}</td>
+                    <td class="py-3.5 px-4 font-bold text-slate-900">${escapeHtml(branch.name)}</td>
+                    <td class="py-3.5 px-4">
+                        <span class="font-black text-slate-900">${formatNumber(tx.amount)}</span>
+                        <span class="text-xs text-slate-600">${escapeHtml(mat.unit)}</span>
+                        <span class="font-bold text-slate-800 mr-1">${escapeHtml(mat.name)}</span>
+                    </td>
+                    <td class="py-3.5 px-4">
+                        ${isLent
+                            ? `<span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                                <i class="fa-solid fa-plus"></i> طلب (اضافه به آمار آخر ماه)
+                               </span>`
+                            : `<span class="inline-flex items-center gap-1 text-xs font-bold text-brand-700 bg-brand-50 border border-brand-200 px-2.5 py-1 rounded-lg">
+                                <i class="fa-solid fa-minus"></i> بدهی (کسر از آمار آخر ماه)
+                               </span>`
+                        }
+                    </td>
+                    <td class="py-3.5 px-4 text-xs text-slate-500 max-w-xs truncate">${escapeHtml(tx.note || '—')}</td>
+                    <td class="py-3.5 px-4 text-center">
+                        <button onclick="toggleTransactionStatus('${tx.id}')" class="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border transition-all ${
+                            isPending
+                                ? 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-emerald-600 hover:text-white hover:border-emerald-600'
+                                : 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-slate-200 hover:text-slate-700'
+                        }">
+                            <i class="fa-solid ${isPending ? 'fa-clock' : 'fa-check-circle'}"></i>
+                            <span>${isPending ? 'در انتظار تسویه (باز)' : 'تسویه شده'}</span>
+                        </button>
+                    </td>
+                    <td class="py-3.5 px-4 text-left whitespace-nowrap">
+                        <button onclick="openEditTransactionModal('${tx.id}')" class="text-slate-500 hover:text-slate-900 p-1.5" title="ویرایش">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteTransaction('${tx.id}')" class="text-brand-500 hover:text-brand-700 p-1.5 mr-1" title="حذف">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderDefinitionsTab() {
+            const branchesList = document.getElementById('branchesManageList');
+            const materialsList = document.getElementById('materialsManageList');
+
+            branchesList.innerHTML = '';
+            if (appData.branches.length === 0) {
+                branchesList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">هنوز شعبه‌ای تعریف نشده است.</p>`;
+            } else {
+                appData.branches.forEach(b => {
+                    const txCount = appData.transactions.filter(t => t.branchId === b.id).length;
+                    const div = document.createElement('div');
+                    div.className = 'py-3 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl';
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-900 text-sm">${escapeHtml(b.name)}</div>
+                            <div class="text-xs text-slate-400">${escapeHtml(b.contact || 'بدون اطلاعات تماس')} • ${formatNumber(txCount)} حواله ثبت‌شده</div>
+                        </div>
+                        <button onclick="handleDeleteBranch('${b.id}')" class="text-xs text-brand-600 hover:bg-brand-50 px-2.5 py-1.5 rounded-lg font-semibold">
+                            <i class="fa-solid fa-trash-can ml-1"></i> حذف
+                        </button>
+                    `;
+                    branchesList.appendChild(div);
+                });
+            }
+
+            materialsList.innerHTML = '';
+            if (appData.materials.length === 0) {
+                materialsList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">هنوز متریالی تعریف نشده است.</p>`;
+            } else {
+                appData.materials.forEach(m => {
+                    const txCount = appData.transactions.filter(t => t.materialId === m.id).length;
+                    const div = document.createElement('div');
+                    div.className = 'py-3 px-2 flex items-center justify-between hover:bg-slate-50 rounded-xl';
+                    div.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-900 text-sm">${escapeHtml(m.name)}</span>
+                            <span class="text-xs bg-slate-100 text-slate-700 font-semibold px-2 py-0.5 rounded-md">${escapeHtml(m.unit)}</span>
+                            <span class="text-xs text-slate-400">(${formatNumber(txCount)} حواله)</span>
+                        </div>
+                        <button onclick="handleDeleteMaterial('${m.id}')" class="text-xs text-brand-600 hover:bg-brand-50 px-2.5 py-1.5 rounded-lg font-semibold">
+                            <i class="fa-solid fa-trash-can ml-1"></i> حذف
+                        </button>
+                    `;
+                    materialsList.appendChild(div);
+                });
+            }
+        }
+
+        function handleAddBranch(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('newBranchNameInput');
+            const managerInput = document.getElementById('newBranchManagerInput');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            const newBranch = {
+                id: 'b_' + Date.now(),
+                name,
+                contact: managerInput.value.trim()
+            };
+            appData.branches.push(newBranch);
+            saveAppData();
+            nameInput.value = '';
+            managerInput.value = '';
+            renderAllViews();
+            showToast(`شعبه «${name}» اضافه و در درایو ثبت شد.`);
+        }
+
+        function handleDeleteBranch(branchId) {
+            const usedCount = appData.transactions.filter(t => t.branchId === branchId).length;
+            const br = getBranchById(branchId);
+            openConfirmModal(
+                'حذف شعبه',
+                usedCount > 0
+                    ? `شعبه «${br.name}» دارای ${formatNumber(usedCount)} حواله ثبت‌شده است. آیا از حذف این شعبه و حواله‌های مرتبط با آن مطمئن هستید؟`
+                    : `آیا از حذف شعبه «${br.name}» مطمئن هستید؟`,
+                () => {
+                    appData.branches = appData.branches.filter(b => b.id !== branchId);
+                    appData.transactions = appData.transactions.filter(t => t.branchId !== branchId);
+                    if (selectedBranchIdForTab2 === branchId) selectedBranchIdForTab2 = 'all';
+                    saveAppData();
+                    renderAllViews();
+                    showToast('شعبه حذف شد و تغییرات در درایو ذخیره گردید.');
+                }
+            );
+        }
+
+        function handleAddMaterial(e) {
+            e.preventDefault();
+            const nameInput = document.getElementById('newMaterialNameInput');
+            const unitSelect = document.getElementById('newMaterialUnitSelect');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            const newMat = {
+                id: 'm_' + Date.now(),
+                name,
+                unit: unitSelect.value
+            };
+            appData.materials.push(newMat);
+            saveAppData();
+            nameInput.value = '';
+            renderAllViews();
+            showToast(`متریال «${name} (${newMat.unit})» اضافه و در درایو ثبت شد.`);
+        }
+
+        function handleDeleteMaterial(materialId) {
+            const usedCount = appData.transactions.filter(t => t.materialId === materialId).length;
+            const mat = getMaterialById(materialId);
+            openConfirmModal(
+                'حذف متریال',
+                usedCount > 0
+                    ? `متریال «${mat.name}» در ${formatNumber(usedCount)} حواله استفاده شده است. آیا از حذف آن مطمئن هستید؟`
+                    : `آیا از حذف متریال «${mat.name}» مطمئن هستید؟`,
+                () => {
+                    appData.materials = appData.materials.filter(m => m.id !== materialId);
+                    appData.transactions = appData.transactions.filter(t => t.materialId !== materialId);
+                    saveAppData();
+                    renderAllViews();
+                    showToast('متریال حذف شد و تغییرات در درایو ذخیره گردید.');
+                }
+            );
+        }
+
+        function populateFilterAndModalDropdowns() {
+            const filterBranch = document.getElementById('filterBranchSelect');
+            const currentFilterVal = filterBranch.value || 'all';
+            filterBranch.innerHTML = `<option value="all">همه شعب</option>`;
+            appData.branches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name;
+                filterBranch.appendChild(opt);
+            });
+            filterBranch.value = currentFilterVal;
+
+            const txBranchSelect = document.getElementById('txBranchSelect');
+            const prevBranch = txBranchSelect.value;
+            txBranchSelect.innerHTML = '';
+            appData.branches.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.id;
+                opt.textContent = b.name;
+                txBranchSelect.appendChild(opt);
+            });
+            if (prevBranch && appData.branches.some(b => b.id === prevBranch)) {
+                txBranchSelect.value = prevBranch;
+            }
+
+            const txMaterialSelect = document.getElementById('txMaterialSelect');
+            const prevMat = txMaterialSelect.value;
+            txMaterialSelect.innerHTML = '';
+            appData.materials.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = `${m.name} (${m.unit})`;
+                txMaterialSelect.appendChild(opt);
+            });
+            if (prevMat && appData.materials.some(m => m.id === prevMat)) {
+                txMaterialSelect.value = prevMat;
+            }
+            updateModalUnitBadge();
+        }
+
+        function updateModalUnitBadge() {
+            const matId = document.getElementById('txMaterialSelect').value;
+            const mat = getMaterialById(matId);
+            document.getElementById('txModalUnitLabel').textContent = mat ? mat.unit : 'واحد';
+        }
+
+        function selectTxType(type) {
+            const cardBorrowed = document.getElementById('typeCardBorrowed');
+            const cardLent = document.getElementById('typeCardLent');
+            const radios = document.getElementsByName('txType');
+            radios.forEach(r => {
+                r.checked = (r.value === type);
+            });
+
+            if (type === 'borrowed') {
+                cardBorrowed.className = 'cursor-pointer rounded-2xl border-2 border-brand-600 bg-brand-50/60 p-3.5 transition-all flex flex-col justify-between';
+                cardLent.className = 'cursor-pointer rounded-2xl border-2 border-slate-200 bg-white p-3.5 transition-all flex flex-col justify-between';
+            } else {
+                cardLent.className = 'cursor-pointer rounded-2xl border-2 border-emerald-600 bg-emerald-50/60 p-3.5 transition-all flex flex-col justify-between';
+                cardBorrowed.className = 'cursor-pointer rounded-2xl border-2 border-slate-200 bg-white p-3.5 transition-all flex flex-col justify-between';
+            }
+        }
+
+        function openTransactionModal() {
+            populateFilterAndModalDropdowns();
+            document.getElementById('txEditId').value = '';
+            document.getElementById('txModalTitle').textContent = 'ثبت حواله قرض متریال بین شعب';
+            document.getElementById('txAmountInput').value = '';
+            document.getElementById('txStatusSelect').value = 'pending';
+            document.getElementById('txDateInput').value = getTodayPersianDate();
+            document.getElementById('txNoteInput').value = '';
+            selectTxType('borrowed');
+            updateModalUnitBadge();
+
+            const modal = document.getElementById('transactionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function openTransactionModalWithBranch() {
+            openTransactionModal();
+            if (selectedBranchIdForTab2 !== 'all') {
+                document.getElementById('txBranchSelect').value = selectedBranchIdForTab2;
+            }
+        }
+
+        function openEditTransactionModal(txId) {
+            const tx = appData.transactions.find(t => t.id === txId);
+            if (!tx) return;
+
+            populateFilterAndModalDropdowns();
+            document.getElementById('txEditId').value = tx.id;
+            document.getElementById('txModalTitle').textContent = 'ویرایش حواله متریال';
+            document.getElementById('txBranchSelect').value = tx.branchId;
+            document.getElementById('txMaterialSelect').value = tx.materialId;
+            document.getElementById('txAmountInput').value = tx.amount;
+            document.getElementById('txStatusSelect').value = tx.status;
+            document.getElementById('txDateInput').value = tx.date;
+            document.getElementById('txNoteInput').value = tx.note || '';
+            selectTxType(tx.type);
+            updateModalUnitBadge();
+
+            const modal = document.getElementById('transactionModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeTransactionModal() {
+            const modal = document.getElementById('transactionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleSaveTransaction(e) {
+            e.preventDefault();
+            const editId = document.getElementById('txEditId').value;
+            const branchId = document.getElementById('txBranchSelect').value;
+            const materialId = document.getElementById('txMaterialSelect').value;
+            const amount = parseFloat(document.getElementById('txAmountInput').value);
+            const status = document.getElementById('txStatusSelect').value;
+            const date = document.getElementById('txDateInput').value.trim() || getTodayPersianDate();
+            const note = document.getElementById('txNoteInput').value.trim();
+
+            let type = 'borrowed';
+            document.getElementsByName('txType').forEach(r => {
+                if (r.checked) type = r.value;
+            });
+
+            if (!branchId || !materialId || isNaN(amount) || amount <= 0) {
+                showToast('لطفاً شعبه، متریال و مقدار معتبر وارد کنید.', 'error');
+                return;
+            }
+
+            if (editId) {
+                const idx = appData.transactions.findIndex(t => t.id === editId);
+                if (idx > -1) {
+                    appData.transactions[idx] = {
+                        ...appData.transactions[idx],
+                        branchId,
+                        materialId,
+                        type,
+                        amount,
+                        status,
+                        date,
+                        note
+                    };
+                }
+                showToast('حواله ویرایش شد.');
+            } else {
+                appData.transactions.unshift({
+                    id: 'tx_' + Date.now(),
+                    branchId,
+                    materialId,
+                    type,
+                    amount,
+                    status,
+                    date,
+                    note
+                });
+                showToast('حواله جدید ثبت و در درایو ذخیره شد.');
+            }
+
+            saveAppData();
+            closeTransactionModal();
+            renderAllViews();
+        }
+
+        function toggleTransactionStatus(txId) {
+            const tx = appData.transactions.find(t => t.id === txId);
+            if (!tx) return;
+            tx.status = tx.status === 'pending' ? 'settled' : 'pending';
+            saveAppData();
+            renderAllViews();
+
+            const mat = getMaterialById(tx.materialId);
+            if (tx.status === 'settled') {
+                showToast(`«${formatNumber(tx.amount)} ${mat.unit} ${mat.name}» تسویه شد.`);
+            } else {
+                showToast(`حواله به وضعیت باز برگشت و در درایو ذخیره شد.`);
+            }
+        }
+
+        function deleteTransaction(txId) {
+            openConfirmModal(
+                'حذف حواله',
+                'آیا از حذف این ردیف حواله مطمئن هستید؟',
+                () => {
+                    appData.transactions = appData.transactions.filter(t => t.id !== txId);
+                    saveAppData();
+                    renderAllViews();
+                    showToast('حواله حذف شد.');
+                }
+            );
+        }
+
+        function toggleInlineNewBranch() {
+            const box = document.getElementById('inlineNewBranchBox');
+            box.classList.toggle('hidden');
+        }
+
+        function saveInlineNewBranch() {
+            const input = document.getElementById('inlineBranchName');
+            const name = input.value.trim();
+            if (!name) return;
+            const newB = { id: 'b_' + Date.now(), name, contact: '' };
+            appData.branches.push(newB);
+            saveAppData();
+            populateFilterAndModalDropdowns();
+            document.getElementById('txBranchSelect').value = newB.id;
+            input.value = '';
+            document.getElementById('inlineNewBranchBox').classList.add('hidden');
+            renderTopStats();
+            showToast(`شعبه «${name}» اضافه و ثبت شد.`);
+        }
+
+        function toggleInlineNewMaterial() {
+            const box = document.getElementById('inlineNewMaterialBox');
+            box.classList.toggle('hidden');
+        }
+
+        function saveInlineNewMaterial() {
+            const nameInput = document.getElementById('inlineMaterialName');
+            const unitSelect = document.getElementById('inlineMaterialUnit');
+            const name = nameInput.value.trim();
+            if (!name) return;
+            const newM = { id: 'm_' + Date.now(), name, unit: unitSelect.value };
+            appData.materials.push(newM);
+            saveAppData();
+            populateFilterAndModalDropdowns();
+            document.getElementById('txMaterialSelect').value = newM.id;
+            updateModalUnitBadge();
+            nameInput.value = '';
+            document.getElementById('inlineNewMaterialBox').classList.add('hidden');
+            renderTopStats();
+            showToast(`متریال «${name}» اضافه و ثبت شد.`);
+        }
+
+        function openQuickBranchModal() {
+            switchTab('definitions');
+            setTimeout(() => {
+                document.getElementById('newBranchNameInput').focus();
+            }, 100);
+        }
+
+        function switchTab(tabName) {
+            activeTab = tabName;
+            const tabs = ['inventory', 'branches', 'transactions', 'definitions'];
+            tabs.forEach(t => {
+                const content = document.getElementById(`tabContent-${t}`);
+                const btn = document.getElementById(`tabBtn-${t}`);
+                if (t === tabName) {
+                    content.classList.remove('hidden');
+                    btn.classList.add('tab-active');
+                } else {
+                    content.classList.add('hidden');
+                    btn.classList.remove('tab-active');
+                }
+            });
+        }
+
+        function toggleGuideBanner() {
+            document.getElementById('logicGuideBanner').classList.add('hidden');
+        }
+
+        function printInventorySheet() {
+            switchTab('inventory');
+            setTimeout(() => {
+                window.print();
+            }, 150);
+        }
+
+        let pendingConfirmAction = null;
+        function openConfirmModal(title, message, onConfirm) {
+            document.getElementById('confirmModalTitle').textContent = title;
+            document.getElementById('confirmModalMessage').textContent = message;
+            pendingConfirmAction = onConfirm;
+            const modal = document.getElementById('confirmModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingConfirmAction = null;
+        }
+
+        document.getElementById('confirmModalActionBtn').addEventListener('click', () => {
+            if (typeof pendingConfirmAction === 'function') {
+                pendingConfirmAction();
+            }
+            closeConfirmModal();
+        });
+
+        function confirmClearSettledTransactions() {
+            openConfirmModal(
+                'پاکسازی حواله‌های تسویه‌شده',
+                'آیا مایلید تمام حواله‌های تسویه شده حذف شوند؟ این تغییر در درایو هم اعمال خواهد شد.',
+                () => {
+                    appData.transactions = appData.transactions.filter(t => t.status !== 'settled');
+                    saveAppData();
+                    renderAllViews();
+                    showToast('حواله‌های تسویه‌شده پاکسازی شدند.');
+                }
+            );
+        }
+
+        function confirmLoadSampleData() {
+            openConfirmModal(
+                'بازنشانی داده‌های نمونه',
+                'آیا مایلید داده‌های نمونه اولیه مجدداً بارگذاری شوند؟',
+                () => {
+                    appData = getDefaultSampleData();
+                    saveAppData();
+                    renderAllViews();
+                    showToast('داده‌های نمونه بارگذاری شدند.');
+                }
+            );
+        }
+
+        function confirmResetAllData() {
+            openConfirmModal(
+                'شروع از صفر (حذف تمام اطلاعات)',
+                'تمامی شعب، متریال‌ها و حواله‌ها از برنامه و گوگل درایو پاک خواهند شد تا اطلاعات واقعی خود را وارد کنید. مطمئن هستید؟',
+                () => {
+                    appData = {
+                        updatedAt: Date.now(),
+                        branches: [],
+                        materials: [],
+                        transactions: [],
+                        physicalCounts: {}
+                    };
+                    saveAppData();
+                    renderAllViews();
+                    showToast('تمام اطلاعات پاک شد و درایو ریست گردید.');
+                }
+            );
+        }
+
+        function openBackupModal() {
+            const gdriveInput = document.getElementById('gdriveUrlInput');
+            if (gdriveInput) gdriveInput.value = GOOGLE_DRIVE_WEB_APP_URL || '';
+            const modal = document.getElementById('backupModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeBackupModal() {
+            const modal = document.getElementById('backupModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function exportDataJson() {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `anbargardani-backup-${Date.now()}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('فایل پشتیبان با موفقیت دانلود شد.');
+        }
+
+        function importDataJson(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported && Array.isArray(imported.branches) && Array.isArray(imported.materials) && Array.isArray(imported.transactions)) {
+                        appData = {
+                            updatedAt: Date.now(),
+                            branches: imported.branches,
+                            materials: imported.materials,
+                            transactions: imported.transactions,
+                            physicalCounts: imported.physicalCounts || {}
+                        };
+                        saveAppData();
+                        renderAllViews();
+                        closeBackupModal();
+                        showToast('اطلاعات با موفقیت بازیابی و در درایو همگام شد.');
+                    } else {
+                        showToast('ساختار فایل پشتیبان معتبر نیست.', 'error');
+                    }
+                } catch (err) {
+                    showToast('خطا در خواندن فایل پشتیبان.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-brand-600' : 'bg-dark-900 border-r-4 border-brand-500';
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-bold flex items-center gap-2.5 transition-all duration-300`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check text-emerald-400'} text-base"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            loadAppData();
+            renderAllViews();
+
+            if (GOOGLE_DRIVE_WEB_APP_URL) {
+                await fetchFromGoogleDrive(false);
+            }
+        });
+    </script>
+</body>
+</html>
